@@ -54,6 +54,145 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Files'
+  /v2/files/create:
+    post:
+      tags: ['ACH Files']
+      summary: Create File
+      description: Create a new File object from either the plaintext or JSON representation.
+      operationId: createFileV2
+      parameters:
+        - name: X-Request-ID
+          in: header
+          description: Optional Request ID allows application developer to trace requests through the system's logs
+          example: "rs4f9915"
+          schema:
+            type: string
+        - name: skipAll
+          in: query
+          description: Optional parameter to disable all validation checks for a File
+          schema:
+            type: boolean
+        - name: requireABAOrigin
+          in: query
+          description: Optional parameter to configure ImmediateOrigin validation
+          schema:
+            type: boolean
+        - name: bypassOriginValidation
+          in: query
+          description: Optional parameter to configure ImmediateOrigin validation
+          schema:
+            type: boolean
+        - name: bypassDestinationValidation
+          in: query
+          description: Optional parameter to configure ImmediateDestination validation
+          schema:
+            type: boolean
+        - name: customTraceNumbers
+          in: query
+          description: Optional parameter to configure ImmediateDestination validation
+          schema:
+            type: boolean
+        - name: allowZeroBatches
+          in: query
+          description: Optional parameter to configure ImmediateDestination validation
+          schema:
+            type: boolean
+        - name: allowMissingFileHeader
+          in: query
+          description: Optional parameter to configure ImmediateDestination validation
+          schema:
+            type: boolean
+        - name: allowMissingFileControl
+          in: query
+          description: Optional parameter to configure ImmediateDestination validation
+          schema:
+            type: boolean
+        - name: bypassCompanyIdentificationMatch
+          in: query
+          description: Optional parameter to configure ImmediateDestination validation
+          schema:
+            type: boolean
+        - name: customReturnCodes
+          in: query
+          description: Optional parameter to configure ImmediateDestination validation
+          schema:
+            type: boolean
+        - name: unequalServiceClassCode
+          in: query
+          description: Optional parameter to configure ImmediateDestination validation
+          schema:
+            type: boolean
+        - name: allowUnorderedBatchNumbers
+          in: query
+          description: Allow a file to be read with unordered batch numbers.
+          schema:
+            type: boolean
+        - name: allowInvalidCheckDigit
+          in: query
+          description: Allow the CheckDigit field in EntryDetail to differ from the expected calculation
+          schema:
+            type: boolean
+        - name: unequalAddendaCounts
+          in: query
+          description: Optional parameter to configure UnequalAddendaCounts validation
+          schema:
+            type: boolean
+        - name: preserveSpaces
+          in: query
+          description: Optional parameter to save all padding spaces
+          schema:
+            type: boolean
+        - name: allowInvalidAmounts
+          in: query
+          description: Optional parameter to save all padding spaces
+          schema:
+            type: boolean
+        - name: allowSpecialCharacters
+          in: query
+          description: Optional parameter to permit a wider range of UTF-8 characters in alphanumeric fields
+          schema:
+            type: boolean
+      requestBody:
+        description: Content of the ACH file (in json or raw text)
+        required: true
+        content:
+          text/plain:
+            schema:
+              description: A plaintext ACH file
+              type: string
+              example: |
+               101 23138010401210428821906240000A094101Federal Reserve Bank   My Bank Name
+               5225Name on Account                     121042882 PPDREG.SALARY      190625   1121042880000001
+               62723138010412345678         0100000000               Receiver Account Name   0121042880000001
+               82250000010023138010000100000000000000000000121042882                          121042880000001
+               9000001000001000000010023138010000100000000000000000000
+               9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+               9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+               9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+               9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+               9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFile'
+      responses:
+        '200':
+          description: A JSON object containing a new File
+          headers:
+            Location:
+              description: The location of the new resource
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateFileResponse'
+        '400':
+          description: "Invalid File Header Object"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StructuredErrorResponse'
   /files/{fileID}:
     post:
       tags: ['ACH Files']
@@ -2664,6 +2803,34 @@ components:
             $ref: '#/components/schemas/File'
         conditions:
           $ref: '#/components/schemas/MergeConditions'
+    StructuredErrorResponse:
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/StructuredError'
+    StructuredError:
+      properties:
+        lineNumber:
+          type: integer
+          description: Line number at which the record appears in the file.
+          example: 138
+        recordType:
+          type: string
+          description: The type of record that the error occurred on.
+          example: "EntryDetail"
+        errorType:
+          type: string
+          description: The type of error that occurred.
+          example: "FieldError"
+        fieldName:
+          type: string
+          description: The name of the field that the error occurred on.
+          example: "PaymentTypeCode"
+        message:
+          type: string
+          description: A human-readable message describing the error.
+          example: "PaymentTypeCode is a required field"
     MergeFilesResponse:
       properties:
         files:
