@@ -6,7 +6,7 @@ This implementation adds a new v2 endpoint for file creation that returns struct
 
 ## New Endpoint
 
-**POST** `/files/v2/create`
+**POST** `/v2/files`
 
 ### Request
 - Same request format as the original endpoint
@@ -60,7 +60,7 @@ Each error in the `errors` array contains:
 
 ## Implementation Details
 
-- New endpoint: `/files/v2/create`
+- New endpoint: `/v2/files`
 - New response type: `createFileV2Response`
 - Error conversion: `convertErrorToStructured()` function handles various ACH error types
 - HTTP status codes: Properly returns 400 for validation errors, 500 for server errors

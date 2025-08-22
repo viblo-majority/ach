@@ -779,7 +779,7 @@ paths:
                 $ref: 'https://raw.githubusercontent.com/moov-io/base/master/api/common.yaml#/components/schemas/Error'
         '404':
           description: A resource with the specified ID was not found
-  /files/v2/create:
+  /v2/files:
     post:
       tags: ['ACH Files']
       summary: Create File (V2)

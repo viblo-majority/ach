@@ -218,7 +218,7 @@ func MakeHTTPHandler(s Service, repo Repository, kitlog gokitlog.Logger) http.Ha
 		options...,
 	))
 	// V2 endpoint with structured errors
-	r.Methods("POST").Path("/files/v2/create").Handler(httptransport.NewServer(
+	r.Methods("POST").Path("/v2/files").Handler(httptransport.NewServer(
 		createFileV2Endpoint(s, repo, logger),
 		decodeCreateFileV2Request,
 		encodeResponse,

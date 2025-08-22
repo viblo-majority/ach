@@ -44,7 +44,7 @@ func TestFiles__CreateFileV2EndpointSuccess(t *testing.T) {
 
 	// test status code
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/files/v2/create", fd)
+	req := httptest.NewRequest("POST", "/v2/files", fd)
 	req.Header.Set("Origin", "https://moov.io")
 	req.Header.Set("X-Request-Id", "test123")
 	req.Header.Set("Content-Type", "application/json")
@@ -76,7 +76,7 @@ func TestFiles__CreateFileV2EndpointJSONErr(t *testing.T) {
 
 	// test status code
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/files/v2/create", fd)
+	req := httptest.NewRequest("POST", "/v2/files", fd)
 	req.Header.Set("Origin", "https://moov.io")
 	req.Header.Set("X-Request-Id", "test123")
 	req.Header.Set("Content-Type", "application/json")
@@ -112,7 +112,7 @@ func TestFiles__CreateFileV2EndpointTextErr(t *testing.T) {
 
 	// test status code
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/files/v2/create", fd)
+	req := httptest.NewRequest("POST", "/v2/files", fd)
 	req.Header.Set("Origin", "https://moov.io")
 	req.Header.Set("X-Request-Id", "test123")
 	req.Header.Set("Content-Type", "text/plain")
@@ -144,7 +144,7 @@ func TestFiles__CreateFileV2EndpointWithInvalidJSON(t *testing.T) {
 	body := bytes.NewReader([]byte(`{"invalid": json}`))
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/files/v2/create", body)
+	req := httptest.NewRequest("POST", "/v2/files", body)
 	req.Header.Set("Origin", "https://moov.io")
 	req.Header.Set("X-Request-Id", "test123")
 	req.Header.Set("Content-Type", "application/json")
