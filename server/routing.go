@@ -217,6 +217,13 @@ func MakeHTTPHandler(s Service, repo Repository, kitlog gokitlog.Logger) http.Ha
 		encodeResponse,
 		options...,
 	))
+	// V2 endpoint with structured errors
+	r.Methods("POST").Path("/files/v2/create").Handler(httptransport.NewServer(
+		createFileV2Endpoint(s, repo, logger),
+		decodeCreateFileV2Request,
+		encodeResponse,
+		options...,
+	))
 	return r
 }
 
@@ -330,7 +337,8 @@ func codeFrom(err error) int {
 		strings.Contains(errString, "*ach.BatchError"),
 		strings.Contains(errString, "*ach.ErrFile"),
 		strings.Contains(errString, "ach.RecordWrongLengthErr"),
-		strings.Contains(errString, "FieldName"): // FileFromJSON
+		strings.Contains(errString, "FieldName"), // FileFromJSON
+		strings.Contains(errString, "validation error:"): // V2 endpoint errors
 		return http.StatusBadRequest
 	}
 

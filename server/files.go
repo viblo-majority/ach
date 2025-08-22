@@ -162,6 +162,138 @@ func decodeCreateFileRequest(_ context.Context, request *http.Request) (interfac
 	return req, nil
 }
 
+// createFileV2Request is similar to createFileRequest but for the v2 endpoint
+type createFileV2Request struct {
+	File         *ach.File
+	parseError   error
+	requestID    string
+	validateOpts *ach.ValidateOpts
+}
+
+// createFileV2Response provides structured error responses
+type createFileV2Response struct {
+	ID     string             `json:"id"`
+	File   *ach.File          `json:"file,omitempty"`
+	Errors []StructuredError  `json:"errors,omitempty"`
+}
+
+func (r createFileV2Response) error() error {
+	if len(r.Errors) > 0 {
+		// Return an error that codeFrom will recognize as a validation error  
+		firstError := r.Errors[0]
+		switch firstError.ErrorType {
+		case "FieldError", "BatchError", "FileError", "wrapError":
+			// Create a recognizable validation error
+			return fmt.Errorf("validation error: %s", firstError.Message)
+		default:
+			return errors.New(firstError.Message)
+		}
+	}
+	return nil
+}
+
+// createFileV2Endpoint handles file creation with structured error responses
+func createFileV2Endpoint(s Service, r Repository, logger log.Logger) endpoint.Endpoint {
+	return func(_ context.Context, request interface{}) (interface{}, error) {
+		req, ok := request.(createFileV2Request)
+		if !ok {
+			return createFileV2Response{
+				Errors: []StructuredError{{
+					ErrorType: "InternalError",
+					Message:   "Invalid request type",
+				}},
+			}, ErrFoundABug
+		}
+
+		// record a metric for files created
+		if req.File != nil && req.File.Header.ImmediateDestination != "" && req.File.Header.ImmediateOrigin != "" {
+			filesCreated.With("destination", req.File.Header.ImmediateDestination, "origin", req.File.Header.ImmediateOrigin).Add(1)
+		}
+
+		// Create a random file ID if none was provided
+		if req.File.ID == "" {
+			req.File.ID = base.ID()
+		}
+
+		if req.validateOpts != nil {
+			req.File.SetValidation(req.validateOpts)
+		}
+
+		resp := createFileV2Response{
+			ID:   req.File.ID,
+		}
+
+		// Handle parse errors first
+		if req.parseError != nil {
+			resp.Errors = convertErrorToStructured(req.parseError)
+		} else {
+			// Try to store the file
+			err := r.StoreFile(req.File)
+			if err != nil {
+				resp.Errors = convertErrorToStructured(err)
+			} else {
+				// Success case - include the file in response
+				resp.File = req.File
+			}
+		}
+
+		if logger != nil {
+			logger := logger.With(log.Fields{
+				"files":     log.String("createFileV2"),
+				"requestID": log.String(req.requestID),
+			})
+			if len(resp.Errors) > 0 {
+				logger.Error().LogError(errors.New(resp.Errors[0].Message))
+			} else {
+				logger.Info().Log("create file v2")
+			}
+		}
+
+		return resp, nil
+	}
+}
+
+// decodeCreateFileV2Request decodes the HTTP request for the v2 endpoint
+func decodeCreateFileV2Request(_ context.Context, request *http.Request) (interface{}, error) {
+	var r io.Reader
+	req := createFileV2Request{
+		File:      ach.NewFile(),
+		requestID: moovhttp.GetRequestID(request),
+	}
+
+	body, validateOpts, err := readValidateOpts(request)
+	if err != nil {
+		return nil, err
+	}
+	req.validateOpts = validateOpts
+
+	bs, err := io.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+
+	h := strings.ToLower(request.Header.Get("Content-Type"))
+	if strings.Contains(h, "application/json") {
+		// Read body as ACH file in JSON
+		f, err := ach.FileFromJSONWith(bs, req.validateOpts)
+		if f != nil {
+			req.File = f
+		}
+		req.parseError = err
+	} else {
+		// Attempt parsing body as an ACH File
+		r = bytes.NewReader(bs)
+		achReader := ach.NewReader(r)
+		achReader.SetValidation(req.validateOpts)
+
+		f, err := achReader.Read()
+		req.File = &f
+		req.parseError = err
+	}
+
+	return req, nil
+}
+
 type getFilesRequest struct {
 	requestID string
 }
